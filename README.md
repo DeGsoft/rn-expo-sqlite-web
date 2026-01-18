@@ -1,8 +1,16 @@
-# Welcome to your Expo app 👋
+# Expo React Native Web SQLite
+
+## Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
+0. Create Project
+
+   ```bash
+   npx create-expo-app --template default@v52
+   npm run reset-project
+   ```
 
 1. Install dependencies
 
@@ -14,6 +22,15 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
    ```bash
     npx expo start
+   ```
+
+3. Install SQLite
+
+   ```bash
+   npm i sql.js
+   npm i --save-dev @types/sql.js
+   mkdir public && mkdir public/lib && mkdir public/lib/sql.js
+   cp node_modules/sql.js/dist/sql-wasm.wasm public/lib/sql.js/
    ```
 
 In the output, you'll find options to open the app in a
