@@ -1,7 +1,6 @@
 import { type SQLiteDatabase } from "@/services/database/SQLiteProvider";
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
-  console.log('migratedDbIfNeeded Native');
   const DATABASE_VERSION = 1;
   let { user_version: currentDbVersion } = await db.getFirstAsync<{
     user_version: number;
@@ -20,4 +19,5 @@ CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY NOT NULL, done INT, val
   //   Add more migrations
   // }
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  console.log('migrated to version', DATABASE_VERSION);
 }

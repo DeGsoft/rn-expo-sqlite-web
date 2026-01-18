@@ -1,5 +1,5 @@
 import { migrateDbIfNeeded } from "@/services/database/migrateDbIfNeeded";
-import { SQLiteProvider } from "@/services/database/SQLiteProvider.web";
+import { SQLiteProvider } from "@/services/database/SQLiteProvider";
 import { Stack } from "expo-router";
 
 export default function RootLayout() {

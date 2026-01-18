@@ -6,6 +6,8 @@ interface SQLiteContextType {
     withExclusiveTransactionAsync: <T>(callback: () => Promise<T>) => Promise<T>;
     runAsync: (query: string, ...params: any[]) => Promise<void>;
     getAllAsync: <T>(query: string, ...params: any[]) => Promise<T[]>;
+    getFirstAsync: <T>(query: string, ...params: any[]) => Promise<T | null>;
+    execAsync: (query: string) => Promise<void>;
 }
 
 const SQLiteContext = createContext<SQLiteContextType | undefined>(undefined);
@@ -33,11 +35,58 @@ export const SQLiteProvider: React.FC<SQLiteProviderProps> = ({
                 locateFile: (file) => `/lib/sql.js/${file}`,
             }).then(async (SQL) => {
                 const database = new SQL.Database();
-                
+
+                const api: SQLiteContextType = {
+                    db: database,
+                    isReady: true,
+                    withExclusiveTransactionAsync: async <T,>(callback: () => Promise<T>): Promise<T> => {
+                        try {
+                            database.run('BEGIN TRANSACTION');
+                            const result = await callback();
+                            database.run('COMMIT');
+                            return result;
+                        } catch (err) {
+                            database.run('ROLLBACK');
+                            throw err;
+                        }
+                    },
+                    runAsync: async (query: string, ...params: any[]) => {
+                        database.run(query, params);
+                    },
+                    getAllAsync: async <T,>(query: string, ...params: any[]) => {
+                        const stmt = database.prepare(query);
+                        stmt.bind(params);
+
+                        const results: T[] = [];
+                        while (stmt.step()) {
+                            const row = stmt.getAsObject();
+                            results.push(row as T);
+                        }
+                        stmt.free();
+
+                        return results;
+                    },
+                    getFirstAsync: async <T,>(query: string, ...params: any[]) => {
+                        const stmt = database.prepare(query);
+                        stmt.bind(params);
+
+                        let result: T | null = null;
+                        if (stmt.step()) {
+                            result = stmt.getAsObject() as T;
+                        }
+                        stmt.free();
+
+                        return result;
+                    },
+                    execAsync: async (query: string) => {
+                        database.exec(query);
+                    },
+                };
+
                 if (onInit) {
-                    await onInit(database);
+                    await onInit(api);
                 }
-                
+
                 dbRef.current = database;
                 setDb(database);
                 setIsReady(true);
@@ -95,13 +144,35 @@ export const SQLiteProvider: React.FC<SQLiteProviderProps> = ({
         return results;
     };
 
+    const getFirstAsync = async <T,>(query: string, ...params: any[]): Promise<T | null> => {
+        const database = await waitForDb();
+        
+        const stmt = database.prepare(query);
+        stmt.bind(params);
+        
+        let result: T | null = null;
+        if (stmt.step()) {
+            result = stmt.getAsObject() as T;
+        }
+        stmt.free();
+        
+        return result;
+    };
+
+    const execAsync = async (query: string): Promise<void> => {
+        const database = await waitForDb();
+        database.exec(query);
+    };
+
     return (
         <SQLiteContext.Provider value={{ 
             db, 
             isReady, 
             withExclusiveTransactionAsync,
             runAsync,
-            getAllAsync
+            getAllAsync,
+            getFirstAsync,
+            execAsync
         }}>
             {children}
         </SQLiteContext.Provider>
