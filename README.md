@@ -24,13 +24,19 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
     npx expo start
    ```
 
-3. Install SQLite
+3. Install [SQLite for Web](./docs/SQL_JS.md)
 
    ```bash
    npm i sql.js
    npm i --save-dev @types/sql.js
    mkdir public && mkdir public/lib && mkdir public/lib/sql.js
    cp node_modules/sql.js/dist/sql-wasm.wasm public/lib/sql.js/
+   ```
+
+3. Install [Expo SQLite](./docs/EXPO_SQLITE.md)
+
+   ```bash
+   npx expo install expo-sqlite
    ```
 
 In the output, you'll find options to open the app in a

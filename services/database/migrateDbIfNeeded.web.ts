@@ -1,4 +1,6 @@
-export function migrateDbIfNeeded(db: any): void {
+import { type SQLiteDatabase } from "@/services/database/SQLiteProvider";
+
+export function migrateDbIfNeeded(db: SQLiteDatabase) {
   console.log('migratedDbIfNeeded Web');
   const DATABASE_VERSION = 1;
   //let { user_version: currentDbVersion } = db.exec<{ user_version: number; }>('PRAGMA user_version');

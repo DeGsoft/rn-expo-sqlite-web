@@ -1,4 +1,4 @@
-import { useSQLiteContext, type SQLiteDatabase } from "@/services/database/SQLiteProvider.web";
+import { useSQLiteContext, type SQLiteDatabase } from "@/services/database/SQLiteProvider";
 import { useState, useEffect, useCallback } from 'react';
 import {
   ScrollView,
