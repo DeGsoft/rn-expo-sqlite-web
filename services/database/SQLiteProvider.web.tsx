@@ -18,14 +18,58 @@ interface SQLiteProviderProps {
     onInit?: (db: any) => Promise<void>;
 }
 
-const saveDB = (db: any, databaseName: string) => {
-    //TODO: Save to indexedDB
-}
+const openIndexedDB = (databaseName: string): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(databaseName, 1);
 
-const loadDB = async (databaseName: string) => {
-    //TODO: Load from indexedDB
-    return null;
-}
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+
+        request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains('databases')) {
+                db.createObjectStore('databases');
+            }
+        };
+    });
+};
+
+const loadDatabaseFromIndexedDB = async (databaseName: string): Promise<Uint8Array | null> => {
+    try {
+        const idb = await openIndexedDB(databaseName);
+        return new Promise((resolve, reject) => {
+            const transaction = idb.transaction(['databases'], 'readonly');
+            const store = transaction.objectStore('databases');
+            const request = store.get(databaseName);
+
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    } catch (error) {
+        console.error('Error loading from IndexedDB:', error);
+        return null;
+    }
+};
+
+const saveDatabaseToIndexedDB = async (databaseName: string, data: Uint8Array): Promise<void> => {
+    try {
+        const idb = await openIndexedDB(databaseName);
+        return new Promise((resolve, reject) => {
+            const transaction = idb.transaction(['databases'], 'readwrite');
+            const store = transaction.objectStore('databases');
+            const request = store.put(data, databaseName);
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    } catch (error) {
+        console.error('Error saving to IndexedDB:', error);
+    }
+};
+
+const loadDB = async (databaseName: string): Promise<Uint8Array | null> => await loadDatabaseFromIndexedDB(databaseName);
+
+const saveDB = async (databaseName: string, db: any): Promise<void> => await saveDatabaseToIndexedDB(databaseName, db.export());
 
 export const openDatabaseAsync = async (databaseName: string, options?: any): Promise<SQLiteDatabase> => {
     const { default: initSqlJs } = await import('sql.js');
@@ -34,6 +78,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
     });
     const savedData = await loadDB(databaseName);
     const database = savedData ? new SQL.Database(savedData) : new SQL.Database();
+
     return {
         db: database,
         //TODO: isInTransactionAsync
@@ -42,7 +87,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
         //TODO: closeSync
         execAsync: async (query: string) => {
             database.exec(query);
-            saveDB(database, databaseName);
+            // saveDB(databaseName,database);
         },
         //TODO: execSync
         //TODO: serializeAsync
@@ -55,7 +100,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
                 database.run('BEGIN TRANSACTION');
                 const result = await callback();
                 database.run('COMMIT');
-                saveDB(database, databaseName);
+                saveDB(databaseName, database);
                 return result;
             } catch (err) {
                 database.run('ROLLBACK');
@@ -68,7 +113,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
                 database.run('BEGIN TRANSACTION');
                 const result = await callback();
                 database.run('COMMIT');
-                saveDB(database, databaseName);
+                saveDB(databaseName, database);
                 return result;
             } catch (err) {
                 database.run('ROLLBACK');
@@ -82,7 +127,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
                 lastInsertRowId: database.exec('SELECT last_insert_rowid()')[0].values[0][0] as number,
                 changes: database.getRowsModified(),
             };
-            void saveDB(database, databaseName);
+            saveDB(databaseName, database);
             return result;
         },
         //TODO: runSync
@@ -124,7 +169,7 @@ export const openDatabaseAsync = async (databaseName: string, options?: any): Pr
 
 export const SQLiteProvider: React.FC<SQLiteProviderProps> = ({
     children,
-    databaseName = 'db.db',
+    databaseName = 'sqlite.db',
     onInit,
 }) => {
     const [db, setDb] = useState<any>(null);
